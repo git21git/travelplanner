@@ -1,0 +1,134 @@
+/* Основные стили */
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Навигация */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.navbar-brand i {
+    margin-right: 0.5rem;
+}
+
+/* Карточки */
+.card {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.card-header {
+    font-weight: 600;
+}
+
+/* Формы */
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Кнопки */
+.btn {
+    border-radius: 5px;
+    font-weight: 500;
+}
+
+.btn i {
+    margin-right: 0.3rem;
+}
+
+/* Алерты */
+.alert {
+    border-radius: 8px;
+    border: none;
+}
+
+/* Карта */
+#map {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* Список мест */
+.place-card {
+    border-left: 4px solid transparent;
+    transition: all 0.2s;
+}
+
+.place-card:hover {
+    background-color: #f8f9fa;
+}
+
+.place-card.active {
+    border-left-color: var(--primary-color);
+    background-color: #e7f1ff;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .display-4 {
+        font-size: 2.5rem;
+    }
+    
+    #map {
+        height: 300px;
+    }
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Кастомные классы */
+.min-vh-75 {
+    min-height: 75vh;
+}
+
+.hover-shadow:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Метки на карте */
+.placemark-popup {
+    min-width: 200px;
+}
+
+.placemark-popup h6 {
+    margin-bottom: 0.5rem;
+    color: var(--primary-color);
+}
+
+.placemark-popup p {
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+}

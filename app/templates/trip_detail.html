@@ -1,0 +1,139 @@
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+      // Используем places_data вместо trip.places|tojson
+      const places = {{ places_data|tojson }};
+      const mapElement = document.getElementById('map');
+
+      if (places.length === 0) {
+          // Если мест нет, показываем карту с центром по умолчанию
+          mapElement.style.height = '300px';
+          const defaultMap = L.map('map').setView([55.751574, 37.573856], 10);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '© OpenStreetMap contributors'
+          }).addTo(defaultMap);
+
+          L.popup()
+              .setLatLng([55.751574, 37.573856])
+              .setContent('<div class="text-center"><p>Добавьте места, чтобы увидеть их на карте</p></div>')
+              .openOn(defaultMap);
+          return;
+      }
+
+      // Инициализация карты с центром на первом месте
+      const map = L.map('map').setView([places[0].lat, places[0].lng], 12);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      // Массив для хранения меток
+      const markers = [];
+      const bounds = [];
+
+      // Добавление меток на карту
+      places.forEach(place => {
+          const marker = L.marker([place.lat, place.lng]).addTo(map);
+
+          // Создание содержимого всплывающего окна
+          const popupContent = `
+              <div class="place-popup">
+                  <h6>${place.name}</h6>
+                  <p><i class="bi bi-pin-map"></i> ${place.address}</p>
+                  ${place.notes ? `<p><i class="bi bi-chat"></i> ${place.notes}</p>` : ''}
+                  <div class="mt-2">
+                      <a href="{{ url_for('edit_place', place_id=0) }}".replace('0', place.id) class="btn btn-sm btn-outline-primary me-1">
+                          <i class="bi bi-pencil"></i>
+                      </a>
+                      <button onclick="deletePlace(${place.id})" class="btn btn-sm btn-outline-danger">
+                          <i class="bi bi-trash"></i>
+                      </button>
+                  </div>
+              </div>
+          `;
+
+          marker.bindPopup(popupContent);
+
+          // Сохраняем метку и добавляем координаты в bounds
+          markers[place.id] = marker;
+          bounds.push([place.lat, place.lng]);
+
+          // Обработчик клика на метку - подсветка соответствующего места в списке
+          marker.on('click', function() {
+              document.querySelectorAll('.place-card').forEach(card => {
+                  card.classList.remove('active');
+              });
+              const activeCard = document.querySelector(`.place-card[data-place-id="${place.id}"]`);
+              if (activeCard) {
+                  activeCard.classList.add('active');
+                  activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+          });
+      });
+
+      // Центрирование карты по всем меткам
+      if (bounds.length > 0) {
+          map.fitBounds(bounds, { padding: [50, 50] });
+      }
+
+      // Обработчики для кнопок "Показать на карте"
+      document.querySelectorAll('.focus-place').forEach(button => {
+          button.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+
+              const placeId = this.dataset.placeId;
+              const place = places.find(p => p.id == placeId);
+
+              if (place && markers[placeId]) {
+                  // Центрируем карту на метке
+                  map.setView([place.lat, place.lng], 15);
+
+                  // Открываем попап
+                  markers[placeId].openPopup();
+
+                  // Подсвечиваем активный элемент в списке
+                  document.querySelectorAll('.place-card').forEach(card => {
+                      card.classList.remove('active');
+                  });
+                  const activeCard = document.querySelector(`.place-card[data-place-id="${placeId}"]`);
+                  if (activeCard) {
+                      activeCard.classList.add('active');
+                  }
+              }
+          });
+      });
+
+      // Клик на карточку места - центрирование карты
+      document.querySelectorAll('.place-card').forEach(card => {
+          card.addEventListener('click', function(e) {
+              // Не срабатывает при клике на кнопки внутри карточки
+              if (e.target.closest('.btn-group')) return;
+
+              const placeId = this.dataset.placeId;
+              const place = places.find(p => p.id == placeId);
+
+              if (place) {
+                  map.setView([place.lat, place.lng], 15);
+
+                  // Подсветка активного элемента
+                  document.querySelectorAll('.place-card').forEach(c => {
+                      c.classList.remove('active');
+                  });
+                  this.classList.add('active');
+              }
+          });
+      });
+  });
+
+  // Функция для удаления места через попап
+  function deletePlace(placeId) {
+      if (confirm('Вы уверены, что хотите удалить это место?')) {
+          // Создаем форму и отправляем POST запрос
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = `{{ url_for('delete_place', place_id=0) }}`.replace('0', placeId);
+          document.body.appendChild(form);
+          form.submit();
+      }
+  }
+</script>

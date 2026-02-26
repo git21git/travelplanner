@@ -1,0 +1,84 @@
+{% extends "base.html" %} {% block title %}Главная - TravelPlanner{% endblock %}
+{% block content %}
+<div class="row min-vh-75 justify-content-center align-items-center">
+  <div class="col-lg-8 text-center">
+    <h1 class="display-4 fw-bold mb-4">
+      Планируйте свои путешествия с TravelPlanner
+    </h1>
+    <p class="lead mb-4">
+      Создавайте маршруты, добавляйте места с автоматическим определением
+      координат и просматривайте их на интерактивной карте. Все ваши поездки в
+      одном месте!
+    </p>
+    <div class="d-grid gap-2 d-md-flex justify-content-center">
+      {% if current_user.is_authenticated %}
+      <a
+        href="{{ url_for('trips') }}"
+        class="btn btn-primary btn-lg px-4 me-md-2"
+      >
+        <i class="bi bi-suitcase"></i> Мои поездки
+      </a>
+      <a
+        href="{{ url_for('new_trip') }}"
+        class="btn btn-outline-secondary btn-lg px-4"
+      >
+        <i class="bi bi-plus-circle"></i> Создать поездку
+      </a>
+      {% else %}
+      <a
+        href="{{ url_for('register') }}"
+        class="btn btn-primary btn-lg px-4 me-md-2"
+      >
+        <i class="bi bi-person-plus"></i> Зарегистрироваться
+      </a>
+      <a
+        href="{{ url_for('login') }}"
+        class="btn btn-outline-secondary btn-lg px-4"
+      >
+        <i class="bi bi-box-arrow-in-right"></i> Войти
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row mt-5 pt-5">
+  <h2 class="text-center mb-4">Возможности TravelPlanner</h2>
+
+  <div class="col-md-4 mb-4">
+    <div class="card h-100 text-center shadow-sm border-0">
+      <div class="card-body">
+        <i class="bi bi-map display-1 text-primary mb-3"></i>
+        <h5 class="card-title">Интерактивные карты</h5>
+        <p class="card-text text-muted">
+          Просматривайте все места вашей поездки на карте с метками
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4 mb-4">
+    <div class="card h-100 text-center shadow-sm border-0">
+      <div class="card-body">
+        <i class="bi bi-geo-alt display-1 text-primary mb-3"></i>
+        <h5 class="card-title">Автоматический поиск координат</h5>
+        <p class="card-text text-muted">
+          Просто введите адрес — координаты определятся автоматически
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4 mb-4">
+    <div class="card h-100 text-center shadow-sm border-0">
+      <div class="card-body">
+        <i class="bi bi-journal-bookmark display-1 text-primary mb-3"></i>
+        <h5 class="card-title">Личный кабинет</h5>
+        <p class="card-text text-muted">
+          Все ваши поездки хранятся в одном месте в безопасности
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

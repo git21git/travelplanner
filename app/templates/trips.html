@@ -1,0 +1,111 @@
+{% extends "base.html" %} {% block title %}Мои поездки - TravelPlanner{%
+endblock %} {% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1><i class="bi bi-suitcase"></i> Мои поездки</h1>
+  <a href="{{ url_for('new_trip') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle"></i> Новая поездка
+  </a>
+</div>
+
+{% if trips %}
+<div class="row">
+  {% for trip in trips %}
+  <div class="col-md-6 col-lg-4 mb-4">
+    <div class="card h-100 shadow-sm hover-card">
+      <div class="card-body">
+        <h5 class="card-title">{{ trip.title }}</h5>
+        <p class="card-subtitle mb-2 text-muted">
+          <i class="bi bi-calendar"></i>
+          {{ trip.start_date.strftime('%d.%m.%Y') }} - {{
+          trip.end_date.strftime('%d.%m.%Y') }}
+        </p>
+        {% if trip.description %}
+        <p class="card-text">{{ trip.description|truncate(100) }}</p>
+        {% endif %}
+        <div class="mt-3">
+          <span class="badge bg-primary">
+            <i class="bi bi-geo-alt"></i> {{ trip.places|length }} мест
+          </span>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent d-flex justify-content-between">
+        <a
+          href="{{ url_for('trip_detail', trip_id=trip.id) }}"
+          class="btn btn-sm btn-outline-primary"
+        >
+          <i class="bi bi-eye"></i> Просмотр
+        </a>
+        <a
+          href="{{ url_for('edit_trip', trip_id=trip.id) }}"
+          class="btn btn-sm btn-outline-secondary"
+        >
+          <i class="bi bi-pencil"></i> Редактировать
+        </a>
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-danger"
+          data-bs-toggle="modal"
+          data-bs-target="#deleteTripModal{{ trip.id }}"
+        >
+          <i class="bi bi-trash"></i> Удалить
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for deleting trip -->
+  <div class="modal fade" id="deleteTripModal{{ trip.id }}" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Подтверждение удаления</h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+          ></button>
+        </div>
+        <div class="modal-body">
+          Вы уверены, что хотите удалить поездку "{{ trip.title }}"?
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Отмена
+          </button>
+          <form
+            action="{{ url_for('delete_trip', trip_id=trip.id) }}"
+            method="POST"
+            style="display: inline"
+          >
+            <button type="submit" class="btn btn-danger">Удалить</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+  <i class="bi bi-suitcase display-1 text-muted"></i>
+  <h3 class="mt-3">У вас пока нет поездок</h3>
+  <p class="text-muted">Создайте свою первую поездку и начните планировать!</p>
+  <a href="{{ url_for('new_trip') }}" class="btn btn-primary btn-lg mt-3">
+    <i class="bi bi-plus-circle"></i> Создать поездку
+  </a>
+</div>
+{% endif %} {% endblock %} {% block extra_css %}
+<style>
+  .hover-card {
+    transition: transform 0.2s;
+  }
+  .hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+  }
+</style>
+{% endblock %}
