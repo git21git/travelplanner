@@ -7,19 +7,37 @@ let placemarks = [];
 let clusterer;
 
 // Инициализация карты
-function initMap(elementId, center = [55.751574, 37.573856], zoom = 10) {
-  if (!ymaps) {
-    console.error("Yandex Maps API not loaded");
-    return;
-  }
+function initYandexMap(elementId, center = [55.751574, 37.573856], zoom = 10) {
+  return new Promise((resolve, reject) => {
+    if (!window.ymaps) {
+      reject(new Error("Yandex Maps API not loaded"));
+      return;
+    }
 
-  map = new ymaps.Map(elementId, {
-    center: center,
-    zoom: zoom,
-    controls: ["zoomControl", "typeSelector", "fullscreenControl"],
+    ymaps.ready(() => {
+      try {
+        map = new ymaps.Map(elementId, {
+          center: center,
+          zoom: zoom,
+          controls: ["zoomControl", "typeSelector", "fullscreenControl"],
+        });
+
+        // Добавляем кластеризатор
+        clusterer = new ymaps.Clusterer({
+          preset: "islands#invertedVioletClusterIcons",
+          groupByCoordinates: false,
+          clusterDisableClickZoom: false,
+          clusterHideIconOnBalloonOpen: false,
+          geoObjectHideIconOnBalloonOpen: false,
+        });
+
+        map.geoObjects.add(clusterer);
+        resolve(map);
+      } catch (error) {
+        reject(error);
+      }
+    });
   });
-
-  return map;
 }
 
 // Добавление метки на карту
@@ -32,22 +50,28 @@ function addPlacemark(lat, lng, options = {}) {
   const placemark = new ymaps.Placemark(
     [lat, lng],
     {
-      hintContent: options.hint || "",
+      hintContent: options.name || "",
       balloonContent: createBalloonContent(options),
+      id: options.id,
     },
     {
-      preset: options.preset || "islands#icon",
+      preset: options.preset || "islands#blueIcon",
       iconColor: options.color || "#0d6efd",
+      draggable: options.draggable || false,
     },
   );
 
-  map.geoObjects.add(placemark);
-
-  placemarks.push({
+  // Сохраняем данные метки
+  const placemarkData = {
     id: options.id || Date.now(),
     placemark: placemark,
     data: options,
-  });
+  };
+
+  placemarks.push(placemarkData);
+
+  // Добавляем в кластеризатор
+  clusterer.add(placemark);
 
   return placemark;
 }
@@ -67,55 +91,53 @@ function createBalloonContent(options) {
     content += `<p><small class="text-muted">${options.notes}</small></p>`;
   }
 
-  content += `</div>`;
+  // Добавляем кнопки действий, если есть id
+  if (options.id) {
+    content += `
+            <div class="mt-2">
+                <a href="/places/${options.id}/edit" class="btn btn-sm btn-outline-primary me-1">
+                    <i class="bi bi-pencil"></i>
+                </a>
+                <button onclick="deletePlace(${options.id})" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+  }
 
+  content += `</div>`;
   return content;
 }
 
 // Удаление всех меток
 function clearPlacemarks() {
-  if (!map) return;
+  if (!map || !clusterer) return;
 
-  placemarks.forEach((item) => {
-    map.geoObjects.remove(item.placemark);
-  });
-
+  clusterer.removeAll();
   placemarks = [];
-
-  if (clusterer) {
-    map.geoObjects.remove(clusterer);
-    clusterer = null;
-  }
 }
 
-// Добавление кластеризатора
-function enableClustering() {
-  if (!map) return;
-
-  clusterer = new ymaps.Clusterer({
-    preset: "islands#invertedVioletClusterIcons",
-    groupByCoordinates: false,
-    clusterDisableClickZoom: false,
-    clusterHideIconOnBalloonOpen: false,
-    geoObjectHideIconOnBalloonOpen: false,
-  });
-
-  map.geoObjects.add(clusterer);
-  return clusterer;
+// Удаление конкретной метки
+function removePlacemark(placemarkId) {
+  const index = placemarks.findIndex((p) => p.id === placemarkId);
+  if (index !== -1) {
+    clusterer.remove(placemarks[index].placemark);
+    placemarks.splice(index, 1);
+  }
 }
 
 // Центрирование карты на метке
 function centerOnPlacemark(placemarkId, zoom = 15) {
-  const placemark = placemarks.find((p) => p.id === placemarkId);
+  const placemarkData = placemarks.find((p) => p.id === placemarkId);
 
-  if (placemark && map) {
-    const coords = placemark.placemark.geometry.getCoordinates();
+  if (placemarkData && map) {
+    const coords = placemarkData.placemark.geometry.getCoordinates();
     map.setCenter(coords, zoom, {
       duration: 300,
     });
 
     // Открываем балун
-    placemark.placemark.balloon.open();
+    placemarkData.placemark.balloon.open();
   }
 }
 
@@ -138,7 +160,7 @@ async function searchAddress(address) {
         lat: coords[0],
         lng: coords[1],
         name: name,
-        address: description,
+        address: description || address,
       };
     }
   } catch (error) {
@@ -149,12 +171,24 @@ async function searchAddress(address) {
   return null;
 }
 
+// Получение текущего центра карты
+function getMapCenter() {
+  return map ? map.getCenter() : null;
+}
+
+// Получение текущего зума
+function getMapZoom() {
+  return map ? map.getZoom() : null;
+}
+
 // Экспорт функций
 window.TravelPlannerMap = {
-  init: initMap,
+  init: initYandexMap,
   addPlacemark: addPlacemark,
   clear: clearPlacemarks,
+  remove: removePlacemark,
   centerOn: centerOnPlacemark,
   searchAddress: searchAddress,
-  enableClustering: enableClustering,
+  getCenter: getMapCenter,
+  getZoom: getMapZoom,
 };

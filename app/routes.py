@@ -82,7 +82,7 @@ def register_routes(app):
         user_trips = Trip.query.filter_by(user_id=current_user.id)\
             .order_by(Trip.start_date.desc()).all()
         return render_template('trips.html', trips=user_trips)
-    
+
     @app.route('/trips/new', methods=['GET', 'POST'])
     @login_required
     def new_trip():
@@ -101,8 +101,8 @@ def register_routes(app):
             flash('Поездка успешно создана!', 'success')
             return redirect(url_for('trip_detail', trip_id=trip.id))
         
-        return render_template('trip_form.html', form=form, title='newпоездка')
-    
+        return render_template('trip_form.html', form=form, title='Новая поездка')
+
     @app.route('/trips/<int:trip_id>')
     @login_required
     def trip_detail(trip_id):
@@ -110,8 +110,11 @@ def register_routes(app):
         trip = Trip.query.get_or_404(trip_id)
         if trip.user_id != current_user.id:
             abort(403)
-
-        return render_template('trip_detail.html', trip=trip)
+        
+        # Преобразуем места в список словарей для JavaScript
+        places_data = [place.to_dict() for place in trip.places]
+        
+        return render_template('trip_detail.html', trip=trip, places_data=places_data)
 
     @app.route('/trips/<int:trip_id>/edit', methods=['GET', 'POST'])
     @login_required
@@ -120,7 +123,7 @@ def register_routes(app):
         trip = Trip.query.get_or_404(trip_id)
         if trip.user_id != current_user.id:
             abort(403)
-
+        
         form = TripForm(obj=trip)
         if form.validate_on_submit():
             trip.title = form.title.data
@@ -130,8 +133,8 @@ def register_routes(app):
             db.session.commit()
             flash('Поездка обновлена.', 'success')
             return redirect(url_for('trip_detail', trip_id=trip.id))
-
-        return render_template('trip_form.html', form=form, title='Editпоездк')
+        
+        return render_template('trip_form.html', form=form, title='Редактирование поездки')
 
     @app.route('/trips/<int:trip_id>/delete', methods=['POST'])
     @login_required
@@ -157,8 +160,33 @@ def register_routes(app):
 
         form = PlaceForm()
         if form.validate_on_submit():
-            # Временно используем тестовые координаты
-            lat, lng = 55.751574, 37.573856  # Москва
+            # Получаем координаты через Яндекс Геокодер
+            lat, lng = None, None
+            try:
+                import requests
+                from flask import current_app
+                
+                api_key = current_app.config['YANDEX_MAPS_API_KEY']
+                address = form.address.data
+                
+                # Запрос к Яндекс Геокодеру
+                url = f"https://geocode-maps.yandex.ru/1.x/?apikey={api_key}&geocode={address}&format=json"
+                response = requests.get(url)
+                data = response.json()
+                
+                # Парсим ответ
+                try:
+                    pos = data['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos']
+                    lng, lat = map(float, pos.split())
+                except (KeyError, IndexError, ValueError):
+                    # Если не удалось получить координаты, используем координаты Москвы по умолчанию
+                    lat, lng = 55.751574, 37.573856
+                    flash('Не удалось определить координаты по адресу. Будет использовано местоположение по умолчанию.', 'warning')
+                    
+            except Exception as e:
+                # В случае ошибки API используем координаты по умолчанию
+                lat, lng = 55.751574, 37.573856
+                flash(f'Ошибка при определении координат: {str(e)}', 'warning')
 
             place = Place(
                 name=form.name.data,

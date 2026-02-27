@@ -25,15 +25,17 @@ TravelPlanner{% endblock %} {% block content %}
           <div class="mb-3">
             {{ form.address.label(class="form-label fw-semibold") }} {% if
             form.address.errors %} {{ form.address(class="form-control
-            is-invalid") }}
+            is-invalid", id="address") }}
             <div class="invalid-feedback">
               {% for error in form.address.errors %} {{ error }} {% endfor %}
             </div>
-            {% else %} {{ form.address(class="form-control") }} {% endif %}
+            {% else %} {{ form.address(class="form-control", id="address") }} {%
+            endif %}
             <div class="form-text">
               <i class="bi bi-info-circle"></i>
               Координаты будут определены автоматически через Яндекс.Карты
             </div>
+            <div id="address-hint" class="text-muted small mt-1"></div>
           </div>
 
           <div class="mb-3">
@@ -66,12 +68,41 @@ TravelPlanner{% endblock %} {% block content %}
 </div>
 {% endblock %} {% block extra_js %}
 <script>
-  // Автодополнение адресов (можно добавить позже)
   document.addEventListener("DOMContentLoaded", function () {
     const addressInput = document.getElementById("address");
-    if (addressInput) {
-      // Здесь можно добавить автодополнение от Яндекса
-      console.log("Address input ready for autocomplete");
+    const hintDiv = document.getElementById("address-hint");
+    let timeoutId;
+
+    if (addressInput && ymaps) {
+      addressInput.addEventListener("input", function () {
+        clearTimeout(timeoutId);
+        const query = this.value.trim();
+
+        if (query.length < 3) {
+          hintDiv.textContent = "";
+          return;
+        }
+
+        timeoutId = setTimeout(async () => {
+          try {
+            const result = await ymaps.geocode(query);
+            const firstGeoObject = result.geoObjects.get(0);
+
+            if (firstGeoObject) {
+              const coords = firstGeoObject.geometry.getCoordinates();
+              const description = firstGeoObject.properties.get("description");
+              hintDiv.innerHTML = `<i class="bi bi-check-circle-fill text-success"></i> Найдено: ${description} (${coords[0].toFixed(4)}, ${coords[1].toFixed(4)})`;
+            } else {
+              hintDiv.innerHTML =
+                '<i class="bi bi-exclamation-triangle-fill text-warning"></i> Адрес не найден';
+            }
+          } catch (error) {
+            console.error("Geocoding error:", error);
+            hintDiv.innerHTML =
+              '<i class="bi bi-exclamation-circle-fill text-danger"></i> Ошибка при поиске адреса';
+          }
+        }, 500);
+      });
     }
   });
 </script>
