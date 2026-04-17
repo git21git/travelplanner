@@ -1,0 +1,48 @@
+# Виртуальное окружение
+venv/
+env/
+.venv/
+
+# Файлы Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# База данных (не копируем существующую БД)
+*.db
+*.sqlite
+instance/
+
+# Документация
+docs/
+_build/
+*.rst
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Переменные окружения (секреты)
+.env
+.env.local
+
+# Логи
+*.log
+
+# Тесты
+tests/
+pytest_cache/
+.coverage
+
+# README и прочие файлы
+README.md
