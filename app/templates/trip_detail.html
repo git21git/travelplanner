@@ -81,7 +81,8 @@ endblock %} {% block content %}
             <button
               type="button"
               class="btn btn-outline-danger"
-              onclick="deletePlace({{ place.id }})"
+              data-place-id="{{ place.id }}"
+              onclick="deletePlace(this)"
               title="Удалить"
             >
               <i class="bi bi-trash"></i>
@@ -151,56 +152,58 @@ endblock %} {% block content %}
 {% endblock %} {% block extra_js %}
 <script>
   // Глобальная функция для удаления места
-  window.deletePlace = function(placeId) {
-      if (confirm('Вы уверены, что хотите удалить это место?')) {
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = `/places/${placeId}/delete`;
-          document.body.appendChild(form);
-          form.submit();
-      }
+  window.deletePlace = function (button) {
+    const placeId = button.getAttribute("data-place-id");
+    if (confirm("Вы уверены, что хотите удалить это место?")) {
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "/places/" + placeId + "/delete";
+      document.body.appendChild(form);
+      form.submit();
+    }
   };
 
-  document.addEventListener('DOMContentLoaded', function() {
-      // Проверяем, что API Яндекс.Карт загружен
-      if (typeof ymaps === 'undefined') {
-          console.error('Yandex Maps API not loaded');
-          document.getElementById('map').innerHTML = '<div class="alert alert-warning">API Яндекс.Карт не загружен. Проверьте подключение.</div>';
-          return;
-      }
+  document.addEventListener("DOMContentLoaded", function () {
+    // Проверяем, что API Яндекс.Карт загружен
+    if (typeof ymaps === "undefined") {
+      console.error("Yandex Maps API not loaded");
+      document.getElementById("map").innerHTML =
+        '<div class="alert alert-warning">API Яндекс.Карт не загружен. Проверьте подключение.</div>';
+      return;
+    }
 
-      const places = {{ places_data|tojson }};
-      const mapContainer = document.getElementById('map');
+    const places = JSON.parse("{{ places_data|tojson|safe }}");
+    const mapContainer = document.getElementById("map");
 
-      // Инициализация карты
-      ymaps.ready(function() {
-          try {
-              // Создаем карту
-              const map = new ymaps.Map('map', {
-                  center: [55.751574, 37.573856],
-                  zoom: 10,
-                  controls: ['zoomControl', 'typeSelector', 'fullscreenControl']
-              });
+    // Инициализация карты
+    ymaps.ready(function () {
+      try {
+        // Создаем карту
+        const map = new ymaps.Map("map", {
+          center: [55.751574, 37.573856],
+          zoom: 10,
+          controls: ["zoomControl", "typeSelector", "fullscreenControl"],
+        });
 
-              // Создаем кластеризатор
-              const clusterer = new ymaps.Clusterer({
-                  preset: 'islands#invertedVioletClusterIcons',
-                  groupByCoordinates: false,
-                  clusterDisableClickZoom: false
-              });
+        // Создаем кластеризатор
+        const clusterer = new ymaps.Clusterer({
+          preset: "islands#invertedVioletClusterIcons",
+          groupByCoordinates: false,
+          clusterDisableClickZoom: false,
+        });
 
-              if (places && places.length > 0) {
-                  // Добавляем все места на карту
-                  places.forEach(place => {
-                      const placemark = new ymaps.Placemark(
-                          [place.lat, place.lng],
-                          {
-                              hintContent: place.name,
-                              balloonContent: `
+        if (places && places.length > 0) {
+          // Добавляем все места на карту
+          places.forEach((place) => {
+            const placemark = new ymaps.Placemark(
+              [place.lat, place.lng],
+              {
+                hintContent: place.name,
+                balloonContent: `
                                   <div class="placemark-popup">
                                       <h6>${place.name}</h6>
                                       <p><small>${place.address}</small></p>
-                                      ${place.notes ? `<p><small class="text-muted">${place.notes}</small></p>` : ''}
+                                      ${place.notes ? `<p><small class="text-muted">${place.notes}</small></p>` : ""}
                                       <div class="mt-2">
                                           <a href="/places/${place.id}/edit" class="btn btn-sm btn-outline-primary me-1">
                                               <i class="bi bi-pencil"></i>
@@ -211,87 +214,87 @@ endblock %} {% block content %}
                                       </div>
                                   </div>
                               `,
-                              id: place.id
-                          },
-                          {
-                              preset: 'islands#blueIcon',
-                              iconColor: '#0d6efd'
-                          }
-                      );
+                id: place.id,
+              },
+              {
+                preset: "islands#blueIcon",
+                iconColor: "#0d6efd",
+              },
+            );
 
-                      clusterer.add(placemark);
-                  });
+            clusterer.add(placemark);
+          });
 
-                  map.geoObjects.add(clusterer);
+          map.geoObjects.add(clusterer);
 
-                  // Центрируем карту по первому месту
-                  map.setCenter([places[0].lat, places[0].lng], 12);
-              } else {
-                  // Если мест нет, добавляем информационную метку
-                  const placemark = new ymaps.Placemark(
-                      [55.751574, 37.573856],
-                      {
-                          hintContent: 'TravelPlanner',
-                          balloonContent: 'Добавьте места, чтобы увидеть их на карте'
-                      },
-                      {
-                          preset: 'islands#greenIcon'
-                      }
-                  );
-                  map.geoObjects.add(placemark);
-              }
+          // Центрируем карту по первому месту
+          map.setCenter([places[0].lat, places[0].lng], 12);
+        } else {
+          // Если мест нет, добавляем информационную метку
+          const placemark = new ymaps.Placemark(
+            [55.751574, 37.573856],
+            {
+              hintContent: "TravelPlanner",
+              balloonContent: "Добавьте места, чтобы увидеть их на карте",
+            },
+            {
+              preset: "islands#greenIcon",
+            },
+          );
+          map.geoObjects.add(placemark);
+        }
 
-              // Сохраняем карту и кластеризатор в глобальные переменные для доступа из других функций
-              window.currentMap = map;
-              window.currentClusterer = clusterer;
+        // Сохраняем карту и кластеризатор в глобальные переменные для доступа из других функций
+        window.currentMap = map;
+        window.currentClusterer = clusterer;
 
-              // Обработчики для кнопок "Показать на карте"
-              document.querySelectorAll('.focus-place').forEach(button => {
-                  button.addEventListener('click', function(e) {
-                      e.preventDefault();
-                      e.stopPropagation();
+        // Обработчики для кнопок "Показать на карте"
+        document.querySelectorAll(".focus-place").forEach((button) => {
+          button.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
 
-                      const placeId = parseInt(this.dataset.placeId);
-                      const place = places.find(p => p.id === placeId);
+            const placeId = parseInt(this.dataset.placeId);
+            const place = places.find((p) => p.id === placeId);
 
-                      if (place) {
-                          map.setCenter([place.lat, place.lng], 15, {
-                              duration: 300
-                          });
-
-                          // Подсветка активного элемента
-                          document.querySelectorAll('.place-card').forEach(card => {
-                              card.classList.remove('active');
-                          });
-                          this.closest('.place-card').classList.add('active');
-                      }
-                  });
+            if (place) {
+              map.setCenter([place.lat, place.lng], 15, {
+                duration: 300,
               });
 
-              // Клик на карточку места
-              document.querySelectorAll('.place-card').forEach(card => {
-                  card.addEventListener('click', function(e) {
-                      if (e.target.closest('.btn-group')) return;
-
-                      const placeId = parseInt(this.dataset.placeId);
-                      const place = places.find(p => p.id === placeId);
-
-                      if (place) {
-                          map.setCenter([place.lat, place.lng], 15);
-
-                          document.querySelectorAll('.place-card').forEach(c => {
-                              c.classList.remove('active');
-                          });
-                          this.classList.add('active');
-                      }
-                  });
+              // Подсветка активного элемента
+              document.querySelectorAll(".place-card").forEach((card) => {
+                card.classList.remove("active");
               });
+              this.closest(".place-card").classList.add("active");
+            }
+          });
+        });
 
-          } catch (error) {
-              console.error('Error initializing map:', error);
-              mapContainer.innerHTML = '<div class="alert alert-danger">Ошибка загрузки карты. Проверьте ключ API Яндекс.Карт.</div>';
-          }
-      });
+        // Клик на карточку места
+        document.querySelectorAll(".place-card").forEach((card) => {
+          card.addEventListener("click", function (e) {
+            if (e.target.closest(".btn-group")) return;
+
+            const placeId = parseInt(this.dataset.placeId);
+            const place = places.find((p) => p.id === placeId);
+
+            if (place) {
+              map.setCenter([place.lat, place.lng], 15);
+
+              document.querySelectorAll(".place-card").forEach((c) => {
+                c.classList.remove("active");
+              });
+              this.classList.add("active");
+            }
+          });
+        });
+      } catch (error) {
+        console.error("Error initializing map:", error);
+        mapContainer.innerHTML =
+          '<div class="alert alert-danger">Ошибка загрузки карты. Проверьте ключ API Яндекс.Карт.</div>';
+      }
+    });
   });
 </script>
 {% endblock %} {% block extra_css %}
